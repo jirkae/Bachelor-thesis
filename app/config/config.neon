@@ -1,0 +1,34 @@
+# WARNING: it is CRITICAL that this file & directory are NOT accessible directly via a web browser!
+# http://nette.org/security-warning
+
+parameters:
+
+php:
+	date.timezone: Europe/Prague
+
+extensions:
+	dibi: Dibi\Bridges\Nette\DibiExtension22
+
+dibi:
+	driver: postgre
+	host: 127.0.0.1
+	database: bp
+	user: postgres
+	password: root
+	lazy: TRUE
+	profiler: TRUE
+
+application:
+	errorPresenter: Error
+	mapping:
+		*: App\*Module\Presenters\*Presenter
+
+
+session:
+	expiration: 14 days
+
+
+services:
+	router: App\RouterFactory::createRouter
+	path:
+		class: Model\Services\PathRepository(@dibi.connection)	

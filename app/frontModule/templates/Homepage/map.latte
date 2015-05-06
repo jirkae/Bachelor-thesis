@@ -1,0 +1,101 @@
+{* Latte template *}
+{block head}
+<style>
+    th,td {
+	display: block;
+    }
+</style>
+{/block}
+{block content}
+<h1>My Map</h1>
+<div id="map" class="map"></div>	
+{/block}
+{block sidebar}
+{control filters}    
+{/block}
+{block scripts}
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCgB3COu0_8KX6bCwzhHRePKn8rbRdybBI"></script>
+
+<script type="text/javascript" src="http://openlayers.org/en/v3.4.0/build/ol.js"></script>
+<script type="text/javascript">
+
+
+    var vectorSource = new ol.source.ServerVector({
+    format: new ol.format.GeoJSON(),
+	    loader: function(extent, resolution, projection) {
+	    var url = 'http://localhost:8080/geoserver/wfs?request=GetFeature&typeName=bp:paths&outputFormat=text/javascript&format_options=callback:loadFeatures{*&bbox=' + extent.join(',') + ',EPSG:3857*}&cql_filter=bbox(the_geom,' + extent.join(',') + ',\'EPSG:3857\'){if isset($filters['type'])} AND type={$filters['type']|noescape}{/if}{if isset($filters['distance_from']) && $filters['distance_from'] > 0} AND distance>{$filters['distance_from']*1000|noescape}{/if}{if isset($filters['distance_to']) && $filters['distance_to']>0} AND distance<{$filters['distance_to']*1000|noescape}{/if}{if isset($filters['elevation_from']) && $filters['elevation_from'] > 0} AND elevation>{$filters['elevation_from']|noescape}{/if}{if isset($filters['elevation_to']) && $filters['elevation_to']>0} AND elevation<{$filters['elevation_to']|noescape}{/if}{*&filter=<PropertyIsEqualTo><PropertyName>type</PropertyName><Literal>1</Literal></PropertyIsEqualTo>*}';
+		    $.ajax({
+		    url: url,
+			    dataType: 'jsonp'
+		    });
+	    },
+	    strategy: ol.loadingstrategy.createTile(new ol.tilegrid.XYZ({
+	    maxZoom: 19
+	    })),
+	    projection: 'EPSG:3857'
+    });
+	    var loadFeatures = function(response) {
+	    vectorSource.addFeatures(vectorSource.readFeatures(response));
+	    };
+	    var vector = new ol.layer.Vector({
+	    source: vectorSource,
+		    style: new ol.style.Style({
+		    stroke: new ol.style.Stroke({
+		    color: 'rgba(0, 0, 255, 1.0)',
+			    width: 5
+		    })
+		    })
+	   });
+	    var map = new ol.Map({
+	    target: 'map',
+		    layers: [
+			    new ol.layer.Tile({
+			    source: new ol.source.BingMaps({
+			    imagerySet: 'Road',
+				    key: 'Ap0klNGkMejhvuYLmyhSxiJ-BX489Khgz6hncseeUFyVRoRM4lfDdUieulffr2v7'
+			    })
+			    }),
+			    vector
+			    ],
+		    view: new ol.View({
+		    center: ol.proj.transform({if !isset($filters['center'])}[15.5, 49.8]{else}[{$filters['center']|noescape}]{/if}, 'EPSG:4326', 'EPSG:3857'),
+			    zoom: {if !isset($filters['center'])}7.7{else}11{/if}
+							})
+						});
+// select interaction working on "pointermove"
+					var selectPointerMove = new ol.interaction.Select({
+					condition: ol.events.condition.pointerMove
+						});
+					var selectedItems = null;
+					var changeInteraction = function() {
+
+					var select = selectPointerMove;
+						if (select !== null) {
+					map.addInteraction(select);
+						select.on('select', function(e) {
+						if (e.selected.length > 0) {
+						selectedItems = e.selected;
+							} else {
+						selectedItems = null;
+							}
+						map.getTargetElement().style.cursor = e.selected.length > 0 ? 'pointer' : '';
+							/*console.log('&nbsp;' + e.target.getFeatures().getLength() +
+							 ' selected features (last operation selected ' + e.selected.length +
+							 ' and deselected ' + e.deselected.length + ' features)');
+							 console.log(e.selected);*/
+							});
+						}
+					};
+					/**
+					 * onchange callback on the select element.
+					 */
+
+					changeInteraction();
+					map.on('singleclick', function(evt) {
+					if (selectedItems != null) {
+					alert(selectedItems[0].aa);
+						}
+					});
+
+</script>
+{/block}
